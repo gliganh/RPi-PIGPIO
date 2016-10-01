@@ -190,4 +190,23 @@ sub callback_cancel {
 }
 
 
+=head2 gpio_trigger
+
+This function sends a trigger pulse to a GPIO. The GPIO is set to level for pulseLen microseconds and then reset to not level. 
+
+Params (in this order):
+$gpio - number of the GPIO pin we want to monitor
+$length - pulse length in microseconds
+$level - level to use for the trigger (HI or LOW)
+
+Usage:
+    $pi->gpio_trigger(4,17,LOW);
+
+=cut
+sub gpio_trigger {
+    my ($self,$gpio,$length,$level) = @_;
+    
+    return xs_gpio_trigger($$self,$gpio,$length,$level);
+}
+
 1;

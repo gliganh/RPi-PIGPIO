@@ -186,13 +186,26 @@ xs_callback_cancel(unsigned callback_id)
     CODE:
     {
         const int rv = callback_cancel(callback_id);
+        
+        RETVAL = rv;
     }
     OUTPUT: RETVAL
 
 SV *        
 xs_get_callbacks_table()
-        CODE:
-        {
-            RETVAL = sv_2mortal(newRV_inc((SV *)callbacks_table));
-        }
-        OUTPUT: RETVAL
+    CODE:
+    {
+        RETVAL = sv_2mortal(newRV_inc((SV *)callbacks_table));
+    }
+    OUTPUT: RETVAL
+
+
+int
+xs_gpio_trigger(int pi, unsigned user_gpio, unsigned pulseLen, unsigned level)
+    CODE:
+    {
+        const int rv = gpio_trigger(pi,user_gpio,pulseLen,level);
+    
+        RETVAL = rv;
+    }
+    OUTPUT: RETVAL
