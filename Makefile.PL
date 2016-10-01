@@ -1,0 +1,18 @@
+use 5.008005;
+use ExtUtils::MakeMaker;
+WriteMakefile(
+    NAME           => 'RPi::PIGPIO',
+    VERSION_FROM   => 'lib/RPi/PIGPIO.pm',
+    PREREQ_PM      => { 
+			'Carp' => 0,
+			'Exporter' => '5.57',
+			'Test::More' => 0,
+			'Time::HiRes' => 0, 
+		      },
+    ABSTRACT_FROM  => 'lib/RPi/PIGPIO.pm',
+    AUTHOR         => 'Horea Gligan',
+    LIBS           => ['-lpigpiod_if2'],
+    DEFINE         => '',
+    INC            => '-I.',
+    OBJECT         => '$(O_FILES)',
+);
