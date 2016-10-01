@@ -163,11 +163,31 @@ Usage :
     
     $pi->callback(17, EITHER_EDGE, 'process_callback');
 
+Returns the is of the callback. This ID must be used when you call C<callback_cancel>
+
 =cut
 sub callback {
     my ($self, $gpio, $edge, $callback) = @_;
     
     return xs_callback($$self,$gpio, $edge, $callback);
 }
+
+=head2 callback_cancel
+
+Cancel a callback registered with C<callback>
+
+Usage:
+    $pi->callback_cancel(5);
+
+Params:
+$callback_id - ID of the callback you want to cancel, as returned by C<callback>
+
+=cut
+sub callback_cancel {
+    my ($self,$callback_id) = @_;
+    
+    return xs_callback_cancel($callback_id);
+}
+
 
 1;

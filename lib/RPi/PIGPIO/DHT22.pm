@@ -62,7 +62,7 @@ sub new {
     
     $instances{$$pi}{$gpio} = $self;
     
-    $pi->callback($gpio,EITHER_EDGE,\&receive_data);
+    $self->{callback_id} = $pi->callback($gpio,EITHER_EDGE,\&receive_data);
     
     return $self;
 }
@@ -250,5 +250,12 @@ sub tick_diff {
     return $diff;
 }
 
+sub DESTROY {
+    my $self = shift;
+    
+    if ($self->{pi}) {
+        $self->{pi}->callback_cancel($self->{callback_id});
+    }
+}
 
 1;

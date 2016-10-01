@@ -180,6 +180,14 @@ xs_callback(int pi, unsigned user_gpio, unsigned edge, CV *callback_ref)
 		RETVAL = rv;	
 	}
 	OUTPUT: RETVAL
+        
+int 
+xs_callback_cancel(unsigned callback_id)
+    CODE:
+    {
+        const int rv = callback_cancel(callback_id);
+    }
+    OUTPUT: RETVAL
 
 SV *        
 xs_get_callbacks_table()
