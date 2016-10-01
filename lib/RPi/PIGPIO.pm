@@ -42,7 +42,7 @@ PI_NOT_PERMITTED =>
 
 =cut
 
-our $VERSION     = '0.001';
+our $VERSION     = '0.002';
 our @EXPORT_OK   = qw( PI_INPUT PI_OUTPUT HI LOW RISING_EDGE FALLING_EDGE EITHER_EDGE );
 our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
 
