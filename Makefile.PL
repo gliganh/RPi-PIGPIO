@@ -15,4 +15,6 @@ WriteMakefile(
     DEFINE         => '',
     INC            => '-I.',
     OBJECT         => '$(O_FILES)',
+    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    clean               => { FILES => 'RPi-PIGPIO-*' },
 );
