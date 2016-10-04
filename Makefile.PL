@@ -11,7 +11,7 @@ WriteMakefile(
 		      },
     ABSTRACT_FROM  => 'lib/RPi/PIGPIO.pm',
     AUTHOR         => 'Horea Gligan',
-    LIBS           => ['-lpigpiod_if2'],
+    LIBS           => [],
     DEFINE         => '',
     INC            => '-I.',
     OBJECT         => '$(O_FILES)',

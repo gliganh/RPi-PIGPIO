@@ -1,8 +1,8 @@
-package RPi::PIGPIO::DHT22;
+package RPi::PIGPIO::Device::DHT22;
 
 =head1 NAME
 
-RPi::PIGPIO::DHT22 - Read temperature and humidity from a DHT22 sensor
+RPi::PIGPIO::Device::DHT22 - Read temperature and humidity from a DHT22 sensor
 
 =head1 DESCRIPTION
 
@@ -16,9 +16,6 @@ use warnings;
 use Carp;
 use RPi::PIGPIO qw/EITHER_EDGE PI_OUTPUT PI_INPUT LOW HI/;
 use Time::HiRes qw/usleep/;
-
-#since we're working with callbacks, we need to keep track of the instance we initiated for each PI / GPIO pair
-my %instances = ();
 
 =head1 METHODS
 
@@ -59,11 +56,7 @@ sub new {
     bless $self, $class;
     
     $self->reset_readings();
-    
-    $instances{$$pi}{$gpio} = $self;
-    
-    $self->{callback_id} = $pi->callback($gpio,EITHER_EDGE,\&receive_data);
-    
+        
     return $self;
 }
 
@@ -120,10 +113,76 @@ sub trigger {
     
     $self->reset_readings();
     
+    my $sock = IO::Socket::INET->new(
+                        PeerAddr => $self->{pi}{host},
+                        PeerPort => $self->{pi}{port},
+                        Proto    => 'tcp'
+                        );
+    
+    die "DHT22 failed to connect to $self->{pi}{host}:$self->{pi}{port}!" unless $sock;
+    
+    my $handle = $self->{pi}->send_command_on_socket($sock, RPi::PIGPIO::PI_CMD_NOIB, 0, 0);
+    
+    my $lastLevel = $self->{pi}->send_command(RPi::PIGPIO::PI_CMD_BR1, 0, 0);
+    
+    #Subscribe to level changes on the DHT22 GPIO
+    $self->{pi}->send_command(RPi::PIGPIO::PI_CMD_NB, $handle , 1 << $self->{gpio});
+    
+    #Notify DHT22 to send data
     $self->{pi}->set_mode($self->{gpio},PI_OUTPUT);
-    $self->{pi}->set_level($self->{gpio},LOW);
+    $self->{pi}->write($self->{gpio},LOW);
     usleep(17);
     $self->{pi}->set_mode($self->{gpio},PI_INPUT);
+    
+    $self->reset_readings();
+        
+    my $MSG_SIZE = 12;
+    
+    my $timeouts = 0;
+        
+    while ($self->{bit} < 40 && $timeouts < 5) {
+            
+        my $buffer;
+                    
+        my $read_buf;
+        
+        $sock->recv($buffer, $MSG_SIZE);
+        
+        while ( length($buffer) < $MSG_SIZE ) {
+           $sock->recv($read_buf, $MSG_SIZE-length($buffer));
+           $buffer .= $read_buf;
+        }
+        
+        my ($seq, $flags, $tick, $level) = unpack('SSII', $buffer);
+        
+        
+        if ($flags && RPi::PIGPIO::NTFY_FLAGS_WDOG) {
+            warn "Timeout in GPIO : ".($flags & RPi::PIGPIO::NTFY_FLAGS_GPIO);
+            $timeouts++;
+        }
+        else {
+            my $changed = $level ^ $lastLevel;
+            $lastLevel = $level;
+            
+            if ( (1<<$self->{gpio}) & $changed ) {
+                my $newLevel = 0;
+                
+                if ( (1<<$self->{gpio}) & $level ) {
+                    $newLevel = 1;
+                }
+                     
+                if (RPi::PIGPIO::EITHER_EDGE ^ $newLevel) {
+                    $self->receive_data($newLevel,$tick);
+                }    
+            }
+            
+        }
+    }
+    
+    $self->{pi}->send_command_on_socket($sock, RPi::PIGPIO::PI_CMD_NC, $handle, 0);
+    
+    $sock->close;
+        
 }
 
 =head1 PRIVATE METHODS
@@ -134,10 +193,8 @@ Callback method used to read and put together the data received from the sensor
 
 =cut
 sub receive_data {
-    my ( $pi_id, $gpio, $level, $tick ) = @_;
+    my ($self, $level, $tick ) = @_;
     
-    my $self = $instances{$pi_id}{$gpio};
-
     #  Accumulate the 40 data bits.  Format into 5 bytes, humidity high,
     #  humidity low, temperature high, temperature low, checksum.
 
@@ -148,7 +205,6 @@ sub receive_data {
     if ( $level == 0 ) {
         
         # Edge length determines if bit is 1 or 0.
-
         if ( $diff >= 50 ) {
             $val = 1;
             if ( $diff >= 200 ) {    # Bad bit?
@@ -158,37 +214,13 @@ sub receive_data {
         else {
             $val = 0;
         }
+        
 
         if ( $self->{bit} >= 40 ) {     # Message complete.
             $self->{bit} = 40;
         }
         elsif ( $self->{bit} >= 32 ) {    # In checksum byte.
-            $self->{cksum} = ( $self->{cksum} << 1 ) + $val;
-            
-            if ( $self->{bit} == 39 ) { # 40th bit received (last bit of checksum).
-            
-                my $total = $self->{h_hi} + $self->{h_lo} + $self->{t_hi} + $self->{t_lo};
-
-                if ( ( $total & 255 ) == $self->{cksum} ) {    # Is checksum ok?
-            
-                    $self->{humidity} = ( ( $self->{h_hi} << 8 ) + $self->{h_lo} ) * 0.1;
-                
-                    my $multiplier = 0.1;
-
-                    if ( $self->{t_hi} & 128 ) {    # Negative temperature.
-                        $multiplier = -0.1;
-                        $self->{t_hi} = $self->{t_hi} & 127;
-                    }
-
-                    $self->{temperature} = ( ( $self->{t_hi} << 8 ) + $self->{t_lo} ) * $multiplier;
-                
-                    $self->{last_read} = time();
-                }
-                else {
-                    $self->{invalid_reads}++;;
-                }
-            }
-            
+            $self->{cksum} = ( $self->{cksum} << 1 ) + $val;            
         }
         elsif ( $self->{bit} >= 24 ) {    # in temp low byte
             $self->{t_lo} = ( $self->{t_lo} << 1 ) + $val;
@@ -205,7 +237,35 @@ sub receive_data {
         else {                            # header bits
 
         }
+        
         $self->{bit}++;
+        
+        if ( $self->{bit} == 40 ) {
+            
+            my $total = $self->{h_hi} + $self->{h_lo} + $self->{t_hi} + $self->{t_lo};
+
+            if ( ( $total & 255 ) == $self->{cksum} ) {    # Is checksum ok?
+        
+                $self->{humidity} = ( ( $self->{h_hi} << 8 ) + $self->{h_lo} ) * 0.1;
+            
+                my $multiplier = 0.1;
+
+                if ( $self->{t_hi} & 128 ) {    # Negative temperature.
+                    $multiplier = -0.1;
+                    $self->{t_hi} = $self->{t_hi} & 127;
+                }
+
+                $self->{temperature} = ( ( $self->{t_hi} << 8 ) + $self->{t_lo} ) * $multiplier;
+            
+                $self->{last_read} = time();
+            }
+            else {
+                $self->{invalid_reads}++;
+                use Data::Dumper;
+                warn "Invalid read !".Dumper($self);
+            }
+        }
+        
 
     }
     elsif ( $level == 1 ) {
@@ -252,10 +312,6 @@ sub tick_diff {
 
 sub DESTROY {
     my $self = shift;
-    
-    if ($self->{pi}) {
-        $self->{pi}->callback_cancel($self->{callback_id});
-    }
 }
 
 1;
