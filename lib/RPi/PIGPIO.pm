@@ -15,6 +15,7 @@ use strict;
 use warnings;
 
 use Exporter 5.57 'import';
+use Package::Constants;
 
 use constant {
     PI_INPUT  => 0,
@@ -190,7 +191,7 @@ PI_NOT_PERMITTED =>
 =cut
 
 our $VERSION     = '0.003';
-our @EXPORT_OK   = qw( PI_INPUT PI_OUTPUT HI LOW RISING_EDGE FALLING_EDGE EITHER_EDGE );
+our @EXPORT_OK   = Package::Constants->list( __PACKAGE__ );
 our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
 
 use IO::Socket::INET;

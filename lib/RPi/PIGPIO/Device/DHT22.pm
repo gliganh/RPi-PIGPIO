@@ -14,7 +14,7 @@ use strict;
 use warnings;
 
 use Carp;
-use RPi::PIGPIO qw/EITHER_EDGE PI_OUTPUT PI_INPUT LOW HI/;
+use RPi::PIGPIO ':all';
 use Time::HiRes qw/usleep/;
 
 =head1 METHODS
@@ -25,7 +25,7 @@ Create a new object
 
 Usage:
 
-    my $dht22 = RPi::PIGPIO::DHT22->new($pi,$gpio);
+    my $dht22 = RPi::PIGPIO::Device::DHT22->new($pi,$gpio);
 
 Arguments: 
 $pi - an instance of RPi::PIGPIO
@@ -121,12 +121,12 @@ sub trigger {
     
     die "DHT22 failed to connect to $self->{pi}{host}:$self->{pi}{port}!" unless $sock;
     
-    my $handle = $self->{pi}->send_command_on_socket($sock, RPi::PIGPIO::PI_CMD_NOIB, 0, 0);
+    my $handle = $self->{pi}->send_command_on_socket($sock, PI_CMD_NOIB, 0, 0);
     
-    my $lastLevel = $self->{pi}->send_command(RPi::PIGPIO::PI_CMD_BR1, 0, 0);
+    my $lastLevel = $self->{pi}->send_command(PI_CMD_BR1, 0, 0);
     
     #Subscribe to level changes on the DHT22 GPIO
-    $self->{pi}->send_command(RPi::PIGPIO::PI_CMD_NB, $handle , 1 << $self->{gpio});
+    $self->{pi}->send_command(PI_CMD_NB, $handle , 1 << $self->{gpio});
     
     #Notify DHT22 to send data
     $self->{pi}->set_mode($self->{gpio},PI_OUTPUT);
@@ -156,8 +156,8 @@ sub trigger {
         my ($seq, $flags, $tick, $level) = unpack('SSII', $buffer);
         
         
-        if ($flags && RPi::PIGPIO::NTFY_FLAGS_WDOG) {
-            warn "Timeout in GPIO : ".($flags & RPi::PIGPIO::NTFY_FLAGS_GPIO);
+        if ($flags && NTFY_FLAGS_WDOG) {
+            warn "Timeout in GPIO : ".($flags & NTFY_FLAGS_GPIO);
             $timeouts++;
         }
         else {
@@ -171,7 +171,7 @@ sub trigger {
                     $newLevel = 1;
                 }
                      
-                if (RPi::PIGPIO::EITHER_EDGE ^ $newLevel) {
+                if (EITHER_EDGE ^ $newLevel) {
                     $self->receive_data($newLevel,$tick);
                 }    
             }
@@ -179,7 +179,7 @@ sub trigger {
         }
     }
     
-    $self->{pi}->send_command_on_socket($sock, RPi::PIGPIO::PI_CMD_NC, $handle, 0);
+    $self->{pi}->send_command_on_socket($sock, PI_CMD_NC, $handle, 0);
     
     $sock->close;
         
