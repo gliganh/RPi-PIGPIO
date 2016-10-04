@@ -1,8 +1,8 @@
-package RPi::PIGPIO::LED;
+package RPi::PIGPIO::Device::LED;
 
 =head1 NAME
 
-RPi::PIGPIO::LED - Turn on and off a led connected to the RaspberryPi GPIO
+RPi::PIGPIO::Device::LED - Turn on and off a led connected to the RaspberryPi GPIO
 
 =head1 DESCRIPTION
 
@@ -69,8 +69,7 @@ Usage :
 sub on {
     my $self = shift;
     
-    $self->{pi}->set_level($self->{gpio},HI);
-    $self->{status} = HI;
+    $self->{pi}->write($self->{gpio},HI);
 }
 
 
@@ -86,8 +85,21 @@ Usage :
 sub off {
     my $self = shift;
     
-    $self->{pi}->set_level($self->{gpio},LOW);
-    $self->{status} = LOW;
+    $self->{pi}->write($self->{gpio},LOW);
+}
+
+
+=head2 status
+
+Returns the status of the led (checks if the GPIO is set to HI or LOW)
+
+=cut
+sub status {
+    my $self = shift;
+    
+    my $mode = $self->{pi}->read($self->{gpio});
+    
+    return $mode;
 }
 
 1;
