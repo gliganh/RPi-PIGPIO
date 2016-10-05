@@ -11,7 +11,7 @@ the GPIO on a local or remote RaspberryPi
 
 On every RapberryPi that you want to use you must have pigpiod daemon running!
 
-
+You can download pigpiod from here L<http://abyz.co.uk/rpi/pigpio/download.html>
 
 =cut
 
@@ -205,9 +205,13 @@ Usage:
     my $pi = RPi::PIGPIO->connect('127.0.0.1');
 
 Params:
+
 =over 4
+
 =item 1. ip_address - The IP address of the pigpiod daemon
+
 =item 2. port - optional, defaults to 8888
+
 =back 
 
 Note: The pigiod daemon must be running on the raspi that you want to use
@@ -254,15 +258,25 @@ sub disconnect {
 Returns the mode of a given GPIO pin
 
 Return values (constant exported by this module):
+
 =over 4
+
 =item 0 => PI_INPUT
+
 =item 1 => PI_OUTPUT
+
 =item 4 => PI_ALT0
+
 =item 5 => PI_ALT1
+
 =item 6 => PI_ALT2
+
 =item 7 => PI_ALT3
+
 =item 3 => PI_ALT4
+
 =item 2 => PI_ALT5
+
 =back
 
 =cut
@@ -285,9 +299,12 @@ Usage:
 
 Params :
 =over 4
+
 =item 1. gpio - GPIO for which you want to change the mode
+
 =item 2. mode - the mode that you want to set. 
          Valid values for I<mode> are exported as constants and are : PI_INPUT, PI_OUTPUT, PI_ALT0, PI_ALT1, PI_ALT2, PI_ALT3, PI_ALT4, PI_ALT5
+
 =back
 
 Returns 0 if OK, otherwise PI_BAD_GPIO, PI_BAD_MODE, or PI_NOT_PERMITTED.
@@ -315,9 +332,13 @@ or
     $pi->write(17, LOW);
 
 Params:
+
 =over 4
+
 =item 1. gpio - GPIO to witch you want to write
+
 =item 2. level - The voltage level that you want to write (one of HI or LOW)
+
 =back 
 
 Note: This method will set the GPIO mode to "OUTPUT" and leave it like this
@@ -344,8 +365,11 @@ or
 
 
 Params:
+
 =over 4
+
 =item 1. gpio - gpio that you want to read
+
 =back
 
 Note: This method will set the GPIO mode to "INPUT" and leave it like this
@@ -363,13 +387,19 @@ sub read {
 This function sends a trigger pulse to a GPIO. The GPIO is set to level for pulseLen microseconds and then reset to not level. 
 
 Params (in this order):
+
 =over 4
+
 =item 1. gpio - number of the GPIO pin we want to monitor
+
 =item 2. length - pulse length in microseconds
+
 =item 3. level - level to use for the trigger (HI or LOW)
+
 =back
 
 Usage:
+    
     $pi->gpio_trigger(4,17,LOW);
 
 Note: After running you call this method the GPIO is left in "INPUT" mode
@@ -389,10 +419,14 @@ sub gpio_trigger {
 
 Sends a command to the pigiod daemon and waits for a response
 
-=over indentlevel
-=item 2. command - code of the command you want to send (see package constants)
-=item 3. param1 - first parameter (usualy the GPIO)
-=item 4. param2 - second parameter - optional - usualy the level to which to set the GPIO (HI/LOW)
+=over 4
+
+=item 1. command - code of the command you want to send (see package constants)
+
+=item 2. param1 - first parameter (usualy the GPIO)
+
+=item 3. param2 - second parameter - optional - usualy the level to which to set the GPIO (HI/LOW)
+
 =back
 
 =cut
@@ -410,11 +444,17 @@ The pourpose of this is to allow you to use the send_command functionality on se
 connections used to monitor changes on GPIO
 
 Params:
-=over indentlevel
+
+=over 4
+
 =item 1. socket - Instance of L<IO::Socket::INET>
+
 =item 2. command - code of the command you want to send (see package constants)
+
 =item 3. param1 - first parameter (usualy the GPIO)
+
 =item 4. param2 - second parameter - optional - usualy the level to which to set the GPIO (HI/LOW)
+
 =back
 
 =cut
