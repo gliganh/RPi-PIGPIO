@@ -8,7 +8,8 @@ WriteMakefile(
         'Exporter'           => '5.57',
         'Test::More'         => 0,
         'Time::HiRes'        => 0,
-        'Package::Constants' => 0
+        'Package::Constants' => 0,
+        'Module::Find'       => 0,
     },
     ABSTRACT_FROM => 'lib/RPi/PIGPIO.pm',
     AUTHOR        => 'Horea Gligan',

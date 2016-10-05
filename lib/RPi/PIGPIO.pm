@@ -9,13 +9,22 @@ RPi::PIGPIO - remotely control the GPIO on a RaspberryPi using the pigpiod daemo
 This module impements a client for the pigpiod daemon, and can be used to control 
 the GPIO on a local or remote RaspberryPi
 
+On every RapberryPi that you want to use you must have pigpiod daemon running!
+
+
+
 =cut
 
 use strict;
 use warnings;
 
+our $VERSION     = '0.004';
+
 use Exporter 5.57 'import';
+
+use IO::Socket::INET;
 use Package::Constants;
+use Time::HiRes qw/usleep/;
 
 use constant {
     PI_INPUT  => 0,
@@ -181,20 +190,9 @@ use constant {
     NTFY_FLAGS_GPIO  => 31,
 };
 
-=head1 ERROR CODES
 
-This is the list of error codes returned by various methods (exported constant and the equivalent value)
-PI_BAD_GPIO => 
-PI_BAD_MODE => 
-PI_NOT_PERMITTED =>
-
-=cut
-
-our $VERSION     = '0.003';
 our @EXPORT_OK   = Package::Constants->list( __PACKAGE__ );
 our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
-
-use IO::Socket::INET;
 
 =head1 METHODS
 
@@ -202,6 +200,18 @@ use IO::Socket::INET;
 
 Connects to the pigpiod running on the given IP address/port and returns an object
 that will allow us to manipulate the GPIO on that Raspberry Pi
+
+Usage:
+
+    my $pi = RPi::PIGPIO->connect('127.0.0.1');
+
+Params:
+=over 4
+=item 1. ip_address - The IP address of the pigpiod daemon
+=item 2. port - optional, defaults to 8888
+=back 
+
+Note: The pigiod daemon must be running on the raspi that you want to use
 
 =cut
 sub connect {
@@ -244,17 +254,17 @@ sub disconnect {
 
 Returns the mode of a given GPIO pin
 
-Return values :
-    0 => PI_INPUT
-    1 => PI_OUTPUT
-    4 => PI_ALT0
-    5 => PI_ALT1
-    6 => PI_ALT2
-    7 => PI_ALT3
-    3 => PI_ALT4
-    2 => PI_ALT5
-
-    in/out/pwm/clock/up/down/tri
+Return values (constant exported by this module):
+=over 4
+=item 0 => PI_INPUT
+=item 1 => PI_OUTPUT
+=item 4 => PI_ALT0
+=item 5 => PI_ALT1
+=item 6 => PI_ALT2
+=item 7 => PI_ALT3
+=item 3 => PI_ALT4
+=item 2 => PI_ALT5
+=back
 
 =cut
 sub get_mode {
@@ -272,7 +282,12 @@ Usage:
 
     $pi->set_mode(17, PI_OUTPUT);
 
-Valid values for $mode are exported as constants and are : PI_INPUT, PI_OUTPUT, PI_ALT0, PI_ALT1, PI_ALT2, PI_ALT3, PI_ALT4, PI_ALT5
+Params :
+=over 4
+=item 1. gpio - GPIO for which you want to change the mode
+=item 2. mode - the mode that you want to set. 
+         Valid values for I<mode> are exported as constants and are : PI_INPUT, PI_OUTPUT, PI_ALT0, PI_ALT1, PI_ALT2, PI_ALT3, PI_ALT4, PI_ALT5
+=back
 
 Returns 0 if OK, otherwise PI_BAD_GPIO, PI_BAD_MODE, or PI_NOT_PERMITTED.
 
@@ -296,11 +311,21 @@ Usage :
 or 
     $pi->write(17, LOW);
 
+Params:
+=over 4
+=item 1. gpio - GPIO to witch you want to write
+=item 2. level - The voltage level that you want to write (one of HI or LOW)
+=back 
+
+Note: This method will set the GPIO mode to "OUTPUT" and leave it like this
+
 =cut
 sub write {
-   my ($self,$pin,$level) = @_;
+    my ($self,$gpio,$level) = @_;
 
-   return $self->send_command(PI_CMD_WRITE,$pin,$level);
+    $self->set_mode($gpio,PI_OUTPUT);
+    
+    return $self->send_command(PI_CMD_WRITE,$gpio,$level);
 }
 
 
@@ -316,66 +341,21 @@ Usage :
 or 
     $pi->read(17);
 
-=cut
-sub read {
-   my ($self,$pin) = @_;
-
-   return $self->send_command(PI_CMD_READ,$pin);
-}
-
-=head2 callback
-
-Register a method you want to be called when the level on a given pin changes
-
-Usage :
-    $pi->callback($gpio, $edge, $method_ref);
-
-Params :
-$gpio - number of the GPIO pin we want to monitor
-$edge - on of RISING_EDGE, FALLING_EDGE, EITHER_EDGE
-$callback_method - coderef to the method that you want to be called when an event is detected.
-The metod will be called with the gpio number, edge and tick as parameters
-
-Usage :
-
-    sub process_callback {
-        my ($gpio, $edge, $tick) = @_;
-    
-        ...
-    };
-    
-    $pi->callback(17, EITHER_EDGE, 'process_callback');
-
-=cut
-sub callback {
-    my ($self, $gpio, $edge, $callback) = @_;
-    
-    die "callback() if not implemeted!";
-}
-
-=head2 cancel_callback
-
-Cancels a callback for the given GPIO
-
-Usage:
-    $pi->cancel_callback($gpio);
 
 Params:
-$gpio - gpio for which you want to cancel the callback
+=over 4
+=item 1. gpio - gpio that you want to read
+=back
+
+Note: This method will set the GPIO mode to "INPUT" and leave it like this
 
 =cut
-sub cancel_callback {
+sub read {
     my ($self,$gpio) = @_;
-    
-    delete $self->{callbacks}{$gpio};
-    
-    $self->{monitored_gpio} = 0;
-    
-    foreach my $remainig_gpio (keys %{$self->{callbacks} // {}}) {
-        $self->{monitored_gpio} |= (1 << $remainig_gpio);
-    }
-    
-    $self->send_command( PI_CMD_NB, $self->{c_handle} , $self->{monitored_gpio});
+
+    $self->set_mode($gpio,PI_INPUT);
+
+    return $self->send_command(PI_CMD_READ,$gpio);
 }
 
 
@@ -384,18 +364,22 @@ sub cancel_callback {
 This function sends a trigger pulse to a GPIO. The GPIO is set to level for pulseLen microseconds and then reset to not level. 
 
 Params (in this order):
-$gpio - number of the GPIO pin we want to monitor
-$length - pulse length in microseconds
-$level - level to use for the trigger (HI or LOW)
+=over 4
+=item 1. gpio - number of the GPIO pin we want to monitor
+=item 2. length - pulse length in microseconds
+=item 3. level - level to use for the trigger (HI or LOW)
+=back
 
 Usage:
     $pi->gpio_trigger(4,17,LOW);
+
+Note: After running you call this method the GPIO is left in "INPUT" mode
 
 =cut
 sub gpio_trigger {
     my ($self,$gpio,$length,$level) = @_;
     
-    return xs_gpio_trigger($$self,$gpio,$length,$level);
+    $self->send_command_ext(PI_CMD_TRIG, $gpio, $length, 4, $level);
 }
 
 =h1 PRIVATE METHODS
@@ -453,47 +437,40 @@ sub send_command_on_socket {
     return $val;
 }
 
-=head2 start_callback_thread
 
-Starts a secondary thread used to monitor user specified GPIOs for changes
+=head2 send_command_ext
+
+Sends an I<extended command> to the pigpiod daemon
 
 =cut
-sub start_callback_thread {
+sub send_command_ext {
     my $self = shift;
     
-    return if $self->{callback_thread};
+    my $sock; 
+    if (ref($self) ne "IO::Socket::INET") {
+        $sock = $self->{sock};
+    }
+    else {
+        $sock = $self;
+    }
+     
+    my $msg = pack('I' x scalar(@_), @_);
     
-    my $sock = IO::Socket::INET->new(
-                        PeerAddr => $self->{host},
-                        PeerPort => $self->{port},
-                        Proto    => 'tcp'
-                        );
+    $sock->send($msg);
+    
+    my $response;
+    
+    $sock->recv($response,16);
+    
+    my ($x, $val) = unpack('a[12] I', $response);
 
-    die "Callbacks thread failed to connect to $self->{host}:$self->{port}!" unless $sock;
+    return $val;
 }
-
-
-
 
 sub prepare_for_exit {
     my $self = shift;
     
     $self->{sock}->close();
-    
-    if (my $callback_thread = $self->{callback_thread}) {
-        my $count = 10;
-        while ($callback_thread->is_running() && $count) {
-            $callback_thread->kill('SIGUSR1');
-            sleep 1;
-            $count--;
-        }
-        if ($callback_thread->is_joinable()) {
-            $callback_thread->join();
-        }
-        else {
-            $callback_thread->kill('KILL');
-        }
-    }
 }
 
 sub DESTROY {

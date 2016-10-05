@@ -16,7 +16,7 @@ use strict;
 use warnings;
 
 use Carp;
-use RPi::PIGPIO qw/PI_OUTPUT LOW HI/;
+use RPi::PIGPIO qw/PI_OUTPUT LOW HI PI_CMD_BR1/;
 
 =head1 METHODS
 
@@ -97,9 +97,11 @@ Returns the status of the led (checks if the GPIO is set to HI or LOW)
 sub status {
     my $self = shift;
     
-    my $mode = $self->{pi}->read($self->{gpio});
+    my $gpio_levels = $self->{pi}->send_command(PI_CMD_BR1, 0, 0);
     
-    return $mode;
+    my $status = $gpio_levels & (1<<$self->{gpio});
+    
+    return $status ? 1 : 0;
 }
 
 1;
