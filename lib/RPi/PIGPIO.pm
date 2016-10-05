@@ -24,7 +24,6 @@ use Exporter 5.57 'import';
 
 use IO::Socket::INET;
 use Package::Constants;
-use Time::HiRes qw/usleep/;
 
 use constant {
     PI_INPUT  => 0,

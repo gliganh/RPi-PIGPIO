@@ -16,6 +16,8 @@ use warnings;
 use Carp;
 use RPi::PIGPIO ':all';
 
+use Time::HiRes qw/usleep/;
+
 =head1 METHODS
 
 =head2 new
@@ -129,7 +131,8 @@ sub trigger {
     
     #Notify DHT22 to send data (send a 17 milisec pulse);
     $self->{pi}->set_mode($self->{gpio},PI_OUTPUT);
-    $self->{pi}->gpio_trigger($self->{gpio},17,LOW);
+    $self->{pi}->write($self->{gpio},LOW);
+    usleep(17);
     $self->{pi}->set_mode($self->{gpio},PI_INPUT);
     
     $self->reset_readings();
@@ -138,7 +141,7 @@ sub trigger {
     
     my $timeouts = 0;
         
-    while ($self->{bit} < 40 && ! $timeouts) {
+    while ($self->{bit} < 40 && $timeouts < 2) {
             
         my $buffer;
                     
@@ -156,7 +159,7 @@ sub trigger {
         warn "Received $seq | $flags | $tick | $level ";
         
         if ($flags && NTFY_FLAGS_WDOG) {
-            warn "Timeout in GPIO : ".($flags & NTFY_FLAGS_GPIO);
+            warn "DHT22: Timeout in GPIO : ".($flags & NTFY_FLAGS_GPIO);
             $timeouts++;
         }
         else {
@@ -260,8 +263,7 @@ sub receive_data {
             }
             else {
                 $self->{invalid_reads}++;
-                use Data::Dumper;
-                warn "Invalid read !".Dumper($self);
+                warn "DHT22: Invalid read !";
             }
         }
         
