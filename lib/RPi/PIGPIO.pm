@@ -381,6 +381,35 @@ sub read {
     return $self->send_command(PI_CMD_READ,$gpio);
 }
 
+=head2 set_watchdog
+
+If no level change has been detected for the GPIO for timeout milliseconds any notification 
+for the GPIO has a report written to the fifo with the flags set to indicate a watchdog timeout. 
+
+Params: 
+
+=over 4
+
+=item 1. gpio - GPIO for which to set the watchdog
+
+=item 2. timeout - time to wait for a level change in milliseconds. 
+
+=back
+
+Only one watchdog may be registered per GPIO. 
+
+The watchdog may be cancelled by setting timeout to 0.
+
+NOTE: This method requires another connection to be created and subcribed to 
+notifications for this GPIO (see DHT22 implementation)
+
+=cut
+sub set_watchdog {
+    my ($self,$gpio,$timeout) = @_;
+    
+    $self->send_command( PI_CMD_WDOG, $gpio, $timeout);
+}
+
 
 =head2 gpio_trigger
 
@@ -408,7 +437,7 @@ Note: After running you call this method the GPIO is left in "INPUT" mode
 sub gpio_trigger {
     my ($self,$gpio,$length,$level) = @_;
     
-    $self->send_command_ext(PI_CMD_TRIG, $gpio, $length, 4, $level);
+    $self->send_command_ext(PI_CMD_TRIG, $gpio, $length, [ $level ]);
 }
 
 =h1 PRIVATE METHODS
@@ -483,7 +512,7 @@ Sends an I<extended command> to the pigpiod daemon
 
 =cut
 sub send_command_ext {
-    my $self = shift;
+    my ($self,$cmd,$param1,$param2,$extra_params) = @_;
     
     my $sock; 
     if (ref($self) ne "IO::Socket::INET") {
@@ -493,9 +522,13 @@ sub send_command_ext {
         $sock = $self;
     }
      
-    my $msg = pack('I' x scalar(@_), @_);
+    my $msg = pack('IIII', $cmd, $param1, $param2, 4 * scalar(@{$extra_params // []}));
     
     $sock->send($msg);
+    
+    foreach (@{$extra_params // []}) {
+       $sock->send(pack("I",$_));
+    }
     
     my $response;
     

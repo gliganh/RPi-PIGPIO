@@ -129,11 +129,14 @@ sub trigger {
     #Subscribe to level changes on the DHT22 GPIO
     $self->{pi}->send_command(PI_CMD_NB, $handle , 1 << $self->{gpio});
     
-    #Notify DHT22 to send data (send a 17 milisec pulse);
+    #$self->{pi}->gpio_trigger($self->{gpio}, 20, LOW);
+    
     $self->{pi}->set_mode($self->{gpio},PI_OUTPUT);
     $self->{pi}->write($self->{gpio},LOW);
     usleep(17);
     $self->{pi}->set_mode($self->{gpio},PI_INPUT);
+     
+    $self->{pi}->set_watchdog($self->{gpio}, 200);
     
     $self->reset_readings();
         
@@ -149,12 +152,18 @@ sub trigger {
         
         $sock->recv($buffer, $MSG_SIZE);
         
+        if ($self->{bit} == 0) {
+            $self->{pi}->set_watchdog($self->{gpio}, 0);
+        }
+        
         while ( length($buffer) < $MSG_SIZE ) {
            $sock->recv($read_buf, $MSG_SIZE-length($buffer));
            $buffer .= $read_buf;
         }
         
         my ($seq, $flags, $tick, $level) = unpack('SSII', $buffer);
+        
+        #warn "Received : $seq | $flags | $tick | $level ";
         
         if ($flags && NTFY_FLAGS_WDOG) {
             warn "DHT22: Timeout in GPIO : ".($flags & NTFY_FLAGS_GPIO);
