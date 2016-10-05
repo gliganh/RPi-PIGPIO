@@ -269,6 +269,8 @@ Return values (constant exported by this module):
 sub get_mode {
     my $self = shift;
     my $gpio = shift;
+    
+    die "Usage : \$pi->get_mode(<gpio>)" unless (defined($gpio));
 
     return $self->send_command(PI_CMD_MODEG,$gpio);
 }
@@ -294,6 +296,8 @@ Returns 0 if OK, otherwise PI_BAD_GPIO, PI_BAD_MODE, or PI_NOT_PERMITTED.
 
 sub set_mode {
    my ($self,$gpio,$mode) = @_;
+   
+   die "Usage : \$pi->set_mode(<gpio>, <mode>)" unless (defined($gpio) && defined($mode));
    
    return $self->send_command(PI_CMD_MODES,$gpio,$mode);
 }
