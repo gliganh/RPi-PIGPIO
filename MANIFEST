@@ -5,6 +5,6 @@ LICENSE
 Makefile.PL
 MANIFEST
 README
-t/00_modules_compile
+t/00_modules_compile.t
 t/01_connect.t
 t/02_pin_mode.t
