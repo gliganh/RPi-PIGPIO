@@ -321,8 +321,6 @@ Note: This method will set the GPIO mode to "OUTPUT" and leave it like this
 =cut
 sub write {
     my ($self,$gpio,$level) = @_;
-
-    $self->set_mode($gpio,PI_OUTPUT);
     
     return $self->send_command(PI_CMD_WRITE,$gpio,$level);
 }
@@ -351,8 +349,6 @@ Note: This method will set the GPIO mode to "INPUT" and leave it like this
 =cut
 sub read {
     my ($self,$gpio) = @_;
-
-    $self->set_mode($gpio,PI_INPUT);
 
     return $self->send_command(PI_CMD_READ,$gpio);
 }
@@ -420,6 +416,8 @@ Params:
 =cut
 sub send_command_on_socket {
     my ($self, $sock, $cmd, $param1, $param2) = @_;
+    
+    warn "Sending $cmd $param1 $param2";
     
     $param2 //= 0;
     

@@ -141,7 +141,7 @@ sub trigger {
     
     my $timeouts = 0;
         
-    while ($self->{bit} < 40 && $timeouts < 2) {
+    while ($self->{bit} < 40 && $timeouts < 5) {
             
         my $buffer;
                     
@@ -155,8 +155,6 @@ sub trigger {
         }
         
         my ($seq, $flags, $tick, $level) = unpack('SSII', $buffer);
-        
-        warn "Received $seq | $flags | $tick | $level ";
         
         if ($flags && NTFY_FLAGS_WDOG) {
             warn "DHT22: Timeout in GPIO : ".($flags & NTFY_FLAGS_GPIO);
