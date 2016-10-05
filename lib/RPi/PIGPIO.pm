@@ -421,8 +421,6 @@ Params:
 sub send_command_on_socket {
     my ($self, $sock, $cmd, $param1, $param2) = @_;
     
-    warn "Sending $cmd $param1 $param2";
-    
     $param2 //= 0;
     
     my $msg = pack('IIII', $cmd, $param1, $param2, 0);
