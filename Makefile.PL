@@ -11,7 +11,7 @@ WriteMakefile(
         'Package::Constants' => 0,
         'Module::Find'       => 0,
     },
-    MIN_PERL_VERSION => 5.0010,
+    MIN_PERL_VERSION => '5.10.0',
     ABSTRACT_FROM => 'lib/RPi/PIGPIO.pm',
     AUTHOR        => 'Horea Gligan',
     LIBS          => [],
