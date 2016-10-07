@@ -1,6 +1,7 @@
 lib/RPi/PIGPIO.pm
 lib/RPi/PIGPIO/Device/DHT22.pm
 lib/RPi/PIGPIO/Device/LED.pm
+lib/RPi/PIGPIO/Device/Switch.pm
 LICENSE
 Makefile.PL
 MANIFEST
