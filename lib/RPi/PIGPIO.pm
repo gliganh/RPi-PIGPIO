@@ -302,6 +302,7 @@ Usage:
     $pi->set_mode(17, PI_OUTPUT);
 
 Params :
+
 =over 4
 
 =item 1. gpio - GPIO for which you want to change the mode
@@ -468,11 +469,11 @@ sub gpio_trigger {
     $self->send_command_ext(PI_CMD_TRIG, $gpio, $length, [ $level ]);
 }
 
-=h1 PRIVATE METHODS
+=head1 PRIVATE METHODS
 
 =cut
 
-=h2 send_command
+=head2 send_command
 
 Sends a command to the pigiod daemon and waits for a response
 
