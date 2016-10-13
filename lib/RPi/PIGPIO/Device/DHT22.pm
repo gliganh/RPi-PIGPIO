@@ -6,7 +6,19 @@ RPi::PIGPIO::Device::DHT22 - Read temperature and humidity from a DHT22 sensor
 
 =head1 DESCRIPTION
 
-Uses the pigpio C library to read temperature and humidity from a local or remote DHT22 sensor
+Uses the pigpiod to read temperature and humidity from a local or remote DHT22 sensor
+
+=head1 SYNOPSIS
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::DHT22;
+
+    my $dht22 = RPi::PIGPIO::Device::DHT22->new($pi,4);
+
+    $dht22->trigger(); #trigger a read
+
+    print "Temperature : ".$dht22->temperature."\n";
+    print "Humidity : ".$dht22->humidity."\n";
 
 =cut
 

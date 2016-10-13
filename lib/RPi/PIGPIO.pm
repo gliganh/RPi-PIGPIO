@@ -13,6 +13,80 @@ On every RapberryPi that you want to use you must have pigpiod daemon running!
 
 You can download pigpiod from here L<http://abyz.co.uk/rpi/pigpio/download.html>
 
+=head2 SYNOPSYS
+
+Blink a led connecyed to GPIO17 on the RasPi connected to the network with ip address 192.168.1.10
+
+    use RPi::PIGPIO ':all';
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    $pi->set_mode(17, PI_OUTPUT);
+
+    $pi->write(17, HI);
+
+    sleep 3;
+
+    $pi->write(17, LOW);
+
+Easier mode to controll leds / switches :
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::LED;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $led = RPi::PIGPIO::Device::LED->new($pi,17);
+
+    $led->on;
+
+    sleep 3;
+
+    $led->off;
+
+Same with a switch (relay):
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::Switch;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $switch = RPi::PIGPIO::Device::Switch->new($pi,4);
+
+    $switch->on;
+
+    sleep 3;
+
+    $switch->off;
+
+Read the temperature and humidity from a DHT22 sensor connected to GPIO4
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::DHT22;
+
+    my $dht22 = RPi::PIGPIO::Device::DHT22->new($pi,4);
+
+    $dht22->trigger(); #trigger a read
+
+    print "Temperature : ".$dht22->temperature."\n";
+    print "Humidity : ".$dht22->humidity."\n";
+
+=head1 SUPPORTED DEVICES
+
+Note: you can write your own code using methods implemeted here to controll your own device
+
+This is just a list of devices for which we already implemented some functionalities to make your life easier
+
+=over 4
+
+=item * DHT22 sensor - use L<RPi::PIGPIO::Device::DHT22>
+
+=item * LED - use L<RPi::PIGPIO::Device::LED>
+
+=item * generic switch / relay - use L<RPi::PIGPIO::Device::LED>
+
+=back
+
 =cut
 
 use strict;

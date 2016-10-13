@@ -10,6 +10,21 @@ Turn on and off a led connected to a local or remote RapsberryPi
 
 What this actually does is set the GPIO to output and allow you to set the levels to HI or LOW
 
+=head1 SYNOPSIS
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::LED;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $led = RPi::PIGPIO::Device::LED->new($pi,17);
+
+    $led->on;
+
+    sleep 3;
+
+    $led->off;
+
 =cut
 
 use strict;

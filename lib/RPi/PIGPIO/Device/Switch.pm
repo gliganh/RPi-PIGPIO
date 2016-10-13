@@ -12,6 +12,21 @@ What this actually does is set the GPIO to output and allow you to set the level
 
 The device can be enything that accept TTL signal as a command (eg: relay, LED )
 
+=head1 SYNOPSIS
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::Switch;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $switch = RPi::PIGPIO::Device::Switch->new($pi,4);
+
+    $switch->on;
+
+    sleep 3;
+
+    $switch->off;
+
 =cut
 
 use strict;
