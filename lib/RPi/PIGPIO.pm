@@ -41,6 +41,10 @@ use constant {
     RISING_EDGE  => 0,
     FALLING_EDGE => 1,
     EITHER_EDGE  => 2,
+    
+    PI_PUD_OFF  => 0,
+    PI_PUD_DOWN => 1,
+    PI_PUD_UP   => 2,
 };
 
 use constant {
@@ -411,6 +415,30 @@ sub set_watchdog {
 }
 
 
+=head2 set_pull_up_down
+
+Set or clear the GPIO pull-up/down resistor. 
+
+=over 4
+
+=item 1. gpio - GPIO for which we want to modify the pull-up/down resistor
+
+=item 2. level - PI_PUD_UP, PI_PUD_DOWN, PI_PUD_OFF.
+
+=back
+
+Usage:
+
+    $pi->set_pull_up_down(18, PI_PUD_DOWN);
+
+=cut
+sub set_pull_up_down {
+    my ($self,$gpio,$level) = @_;
+    
+    $self->send_command(PI_CMD_PUD, $gpio, $level);
+}
+
+
 =head2 gpio_trigger
 
 This function sends a trigger pulse to a GPIO. The GPIO is set to level for pulseLen microseconds and then reset to not level. 
@@ -461,6 +489,16 @@ Sends a command to the pigiod daemon and waits for a response
 =cut
 sub send_command {
     my $self = shift;
+    
+    if (! $self->{sock}->connected) {
+        $self->{sock} = IO::Socket::INET->new(
+                            PeerAddr => $self->{address},
+                            PeerPort => $self->{port},
+                            Proto    => 'tcp'
+                            );
+    }
+    
+    return unless $self->{sock};
     
     return $self->send_command_on_socket($self->{sock},@_);
 }
