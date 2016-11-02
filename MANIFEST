@@ -4,6 +4,7 @@ lib/RPi/PIGPIO/Device/ADC/MCP300x.pm
 lib/RPi/PIGPIO/Device/DHT22.pm
 lib/RPi/PIGPIO/Device/LED.pm
 lib/RPi/PIGPIO/Device/Switch.pm
+lib/RPi/PIGPIO/Device/MH_Z14.pm
 LICENSE
 Makefile.PL
 MANIFEST			This list of files
