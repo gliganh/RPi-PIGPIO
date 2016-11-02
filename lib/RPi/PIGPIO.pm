@@ -752,6 +752,184 @@ sub spi_xfer {
 }
 
 
+=head2 serial_open
+
+Returns a handle for the serial tty device opened
+at baud bits per second.  The device name must start
+with /dev/tty or /dev/serial.
+
+Arguments :
+=open 4
+
+=item arg1 : tty => the serial device to open.
+
+=item arg2 : baud => baud rate in bits per second, see below.
+
+=back
+
+Returns: a handle for the serial connection which will be used
+in calls to C<serial_*> methods
+
+The baud rate must be one of 50, 75, 110, 134, 150,
+200, 300, 600, 1200, 1800, 2400, 4800, 9600, 19200,
+38400, 57600, 115200, or 230400.
+
+Notes: On the raspi on which you want to use the serial device you have to :
+
+1. enable UART -> run C<sudo nano /boot/config.txt> and add the bottom C<enable_uart=1>
+2. run <sudo raspi-config> and disable the login via the Serial port
+
+More info (usefull for Raspi 3) here : L<http://spellfoundry.com/2016/05/29/configuring-gpio-serial-port-raspbian-jessie-including-pi-3/>
+
+Usage:
+
+      $h1 = $pi->serial_open("/dev/ttyAMA0", 300)
+
+      $h2 = $pi->serial_open("/dev/ttyUSB1", 19200, 0)
+
+      $h3 = $pi->serial_open("/dev/serial0", 9600)
+
+=cut
+sub serial_open {
+    my ($self,$tty,$baud) = @_;
+    
+    my $sock = $self->{sock};
+
+    my $msg = pack('IIII', PI_CMD_SERO, $baud, 0, length($tty));
+    
+    $sock->send($msg);
+    $sock->send($tty);
+        
+    my $response;
+    
+    $sock->recv($response,16);
+    
+    my ($x, $val) = unpack('a[12] I', $response);
+
+    return $val;
+}
+
+
+=head2 serial_close
+
+Closes the serial device associated with handle.
+
+Arguments:
+
+handle => the connection as returned by a prior call to C<serial_open>
+
+Usage:
+
+   $pi->serial_close($handle);
+
+=cut
+sub serial_close {
+    my ($self,$handle) = @_;
+    
+    return $self->send_command(PI_CMD_SERC,$handle);
+}
+
+=head2 serial_write
+
+Write a string to the serial handle opened with C<serial_open>
+
+Arguments:
+
+=over 4
+
+=item arg1: handle => connection handle obtained from calling C<serial_open>
+
+=item arg2: data => data to write (string)
+
+=back
+
+Usage :
+
+    my $h = $pi->serial_open('/dev/ttyAMA0',9600);
+
+    my $data = 'foo bar';
+
+    $pi->serial_write($h, $data);
+
+    $pi->serial_close($h);
+
+=cut
+sub serial_write {
+    my ($self,$handle,$data) = @_;
+    
+    my $sock = $self->{sock};
+    
+    my $msg = pack('IIII', PI_CMD_SERW, $handle, 0, length($data));
+    
+    $sock->send($msg);
+    $sock->send($data);
+        
+    my $response;
+    
+    $sock->recv($response,16);
+    
+    my ($x, $val) = unpack('a[12] I', $response);
+}
+
+=head2 serial_read
+
+Read a string from the serial handle opened with C<serial_open>
+
+Arguments:
+
+=over 4
+
+=item arg1: handle => connection handle obtained from calling C<serial_open>
+
+=item arg2: count => number of bytes to read
+
+=back
+
+Usage :
+
+    my $h = $pi->serial_open('/dev/ttyAMA0',9600);
+
+    my $data = $pi->serial_read($h, 10); #read 10 bytes
+
+    $pi->serial_close($h);
+
+Note: Between a read and a write you might want to sleep for half a second
+
+=cut
+sub serial_read {
+    my ($self,$handle,$count) = @_;
+    
+    my $bytes = $self->send_command(PI_CMD_SERR, $handle, $count);
+    
+    my $response;
+    
+    $self->{sock}->recv($response,$count);
+    
+    return $response;
+}
+
+=head2 serial_data_available
+
+Checks if we have any data waiting to be read from the serial handle
+
+Usage :
+
+    my $h = $pi->serial_open('/dev/ttyAMA0',9600);
+
+    my $count = $pi->serial_data_available($h);
+
+    my $data = $pi->serial_read($h, $count);
+
+    $pi->serial_close($h);
+
+=cut
+sub serial_data_available {
+    my ($self,$handle) = @_;
+    
+    return $self->send_command(PI_CMD_SERDA, $handle);
+}
+
+
 ################################################################################################################################
 
 =head1 PRIVATE METHODS
