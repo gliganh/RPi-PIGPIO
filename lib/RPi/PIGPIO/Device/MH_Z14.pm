@@ -16,7 +16,7 @@ Use the GPIO serial interface to read the CO2 concentration from a MM-Z14 module
 
     my $pi = RPi::PIGPIO->connect('192.168.1.10');
 
-    my $co2_sensor = RPi::PIGPIO::Device::MH-Z14->new($pi,'/dev/ttyAMA0');
+    my $co2_sensor = RPi::PIGPIO::Device::MH-Z14->new($pi,mode => 'serial', tty => '/dev/ttyAMA0');
 
     $ppm = $co2_sensor->read();
 
