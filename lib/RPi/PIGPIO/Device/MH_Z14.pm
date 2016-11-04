@@ -8,6 +8,25 @@ RPi::PIGPIO::Device::MH_Z14 - Read CO2 concentration from a MH-Z14 CO2 module
 
 Use the GPIO serial interface to read the CO2 concentration from a MM-Z14 module
 
+=head1 What are safe levels of CO and CO2 in rooms?
+
+=over 4
+
+=item * 250-350ppm	    Normal background concentration in outdoor ambient air
+
+=item * 350-1,000ppm	Concentrations typical of occupied indoor spaces with good air exchange
+
+=item * 1,000-2,000ppm	Complaints of drowsiness and poor air.
+
+=item * 2,000-5,000 ppm	Headaches, sleepiness and stagnant, stale, stuffy air. Poor concentration, loss of attention, increased heart rate and slight nausea may also be present.
+
+=item * 5,000	        Workplace exposure limit (as 8-hour TWA) in most jurisdictions.
+
+=item * >40,000 ppm	    Exposure may lead to serious oxygen deprivation resulting in permanent brain damage, coma, even death.
+
+=back
+
+=cut
 
 =head1 SYNOPSIS
 
@@ -16,7 +35,7 @@ Use the GPIO serial interface to read the CO2 concentration from a MM-Z14 module
 
     my $pi = RPi::PIGPIO->connect('192.168.1.10');
 
-    my $co2_sensor = RPi::PIGPIO::Device::MH-Z14->new($pi,mode => 'serial', tty => '/dev/ttyAMA0');
+    my $co2_sensor = RPi::PIGPIO::Device::MH_Z14->new($pi,mode => 'serial', tty => '/dev/ttyAMA0');
 
     $ppm = $co2_sensor->read();
 

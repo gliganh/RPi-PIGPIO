@@ -83,7 +83,11 @@ This is just a list of devices for which we already implemented some functionali
 
 =item * LED - use L<RPi::PIGPIO::Device::LED>
 
-=item * generic switch / relay - use L<RPi::PIGPIO::Device::LED>
+=item * generic switch / relay - use L<RPi::PIGPIO::Device::Switch>
+
+=item * MH-Z14 CO2 module - use L<RPi::PIGPIO::Device::MH_Z14>
+
+=item * MCP3008/MCP3004 analog-to-digital convertor - use L<RPi::PIGPIO::Device::ADC::MCP300x>
 
 =back
 
@@ -286,13 +290,13 @@ Usage:
 
     my $pi = RPi::PIGPIO->connect('127.0.0.1');
 
-Params:
+Arguments:
 
 =over 4
 
-=item 1. ip_address - The IP address of the pigpiod daemon
+=item * arg1: ip_address - The IP address of the pigpiod daemon
 
-=item 2. port - optional, defaults to 8888
+=item * arg2: port - optional, defaults to 8888
 
 =back 
 
@@ -351,27 +355,28 @@ sub disconnect {
 
 Returns the mode of a given GPIO pin
 
-Return values (constant exported by this module):
+Usage : 
+
+    my $mode = $pi->get_mode(4);
+
+Arguments:
 
 =over 4
 
-=item 0 => PI_INPUT
-
-=item 1 => PI_OUTPUT
-
-=item 4 => PI_ALT0
-
-=item 5 => PI_ALT1
-
-=item 6 => PI_ALT2
-
-=item 7 => PI_ALT3
-
-=item 3 => PI_ALT4
-
-=item 2 => PI_ALT5
+=item * arg1: gpio - GPIO for which you want to change the mode
 
 =back
+
+Return values (constant exported by this module):
+
+    0 = PI_INPUT
+    1 = PI_OUTPUT
+    4 = PI_ALT0
+    5 = PI_ALT1
+    6 = PI_ALT2
+    7 = PI_ALT3
+    3 = PI_ALT4
+    2 = PI_ALT5
 
 =cut
 sub get_mode {
@@ -391,14 +396,14 @@ Usage:
 
     $pi->set_mode(17, PI_OUTPUT);
 
-Params :
+Arguments :
 
 =over 4
 
-=item 1. gpio - GPIO for which you want to change the mode
+=item * arg1: gpio - GPIO for which you want to change the mode
 
-=item 2. mode - the mode that you want to set. 
-         Valid values for I<mode> are exported as constants and are : PI_INPUT, PI_OUTPUT, PI_ALT0, PI_ALT1, PI_ALT2, PI_ALT3, PI_ALT4, PI_ALT5
+=item * arg2: mode - the mode that you want to set. 
+        Valid values for I<mode> are exported as constants and are : PI_INPUT, PI_OUTPUT, PI_ALT0, PI_ALT1, PI_ALT2, PI_ALT3, PI_ALT4, PI_ALT5
 
 =back
 
@@ -426,13 +431,13 @@ Usage :
 or 
     $pi->write(17, LOW);
 
-Params:
+Arguments:
 
 =over 4
 
-=item 1. gpio - GPIO to witch you want to write
+=item * arg1: gpio - GPIO to witch you want to write
 
-=item 2. level - The voltage level that you want to write (one of HI or LOW)
+=item * arg2: level - The voltage level that you want to write (one of HI or LOW)
 
 =back 
 
@@ -455,15 +460,12 @@ Note: You first must set the pin mode to PI_INPUT
 Usage :
 
     $pi->read(17);
-or 
-    $pi->read(17);
 
-
-Params:
+Arguments:
 
 =over 4
 
-=item 1. gpio - gpio that you want to read
+=item * arg1: gpio - gpio that you want to read
 
 =back
 
@@ -481,13 +483,13 @@ sub read {
 If no level change has been detected for the GPIO for timeout milliseconds any notification 
 for the GPIO has a report written to the fifo with the flags set to indicate a watchdog timeout. 
 
-Params: 
+Arguments: 
 
 =over 4
 
-=item 1. gpio - GPIO for which to set the watchdog
+=item * arg1: gpio - GPIO for which to set the watchdog
 
-=item 2. timeout - time to wait for a level change in milliseconds. 
+=item * arg2. timeout - time to wait for a level change in milliseconds. 
 
 =back
 
@@ -512,9 +514,9 @@ Set or clear the GPIO pull-up/down resistor.
 
 =over 4
 
-=item 1. gpio - GPIO for which we want to modify the pull-up/down resistor
+=item * arg1: gpio - GPIO for which we want to modify the pull-up/down resistor
 
-=item 2. level - PI_PUD_UP, PI_PUD_DOWN, PI_PUD_OFF.
+=item * arg2: level - PI_PUD_UP, PI_PUD_DOWN, PI_PUD_OFF.
 
 =back
 
@@ -534,15 +536,15 @@ sub set_pull_up_down {
 
 This function sends a trigger pulse to a GPIO. The GPIO is set to level for pulseLen microseconds and then reset to not level. 
 
-Params (in this order):
+Arguments (in this order):
 
 =over 4
 
-=item 1. gpio - number of the GPIO pin we want to monitor
+=item * arg1: gpio - number of the GPIO pin we want to monitor
 
-=item 2. length - pulse length in microseconds
+=item * arg2: length - pulse length in microseconds
 
-=item 3. level - level to use for the trigger (HI or LOW)
+=item * arg3: level - level to use for the trigger (HI or LOW)
 
 =back
 
@@ -574,15 +576,22 @@ A and B and may be selected by setting the A bit in the
 flags. The auxiliary device has 3 chip selects and a
 selectable word size in bits.
 
-    spi_channel:= 0-1 (0-2 for the auxiliary SPI device).
-           baud:= 32K-125M (values above 30M are unlikely to work).
-      spi_flags:= see below.
+Arguments:
 
+=over 4
+
+=item * arg1: spi_channel:= 0-1 (0-2 for the auxiliary SPI device).
+
+=item * arg2: baud:= 32K-125M (values above 30M are unlikely to work).
+
+=item * arg3: spi_flags:= see below.
+
+=back
 
 spi_flags consists of the least significant 22 bits.
 
     21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
-    b  b  b  b  b  b  R  T  n  n  n  n  W  A u2 u1 u0 p2 p1 p0  m  m
+    b  b  b  b  b  b  R  T  n  n  n  n   W  A u2 u1 u0 p2 p1 p0  m  m
 
 mm defines the SPI mode.
 
@@ -635,7 +644,7 @@ The other bits in flags should be set to zero.
 
 Example: open SPI device on channel 1 in mode 3 at 50k bits per second
 
-    my $spi_handle = $pi.spi_open(1, 50_000, 3);
+    my $spi_handle = $pi->spi_open(1, 50_000, 3);
 
 =cut
 sub spi_open {
@@ -667,16 +676,25 @@ sub spi_close {
 
 =head2 spi_read
 
-Arguments (in this order):
+Arguments (in this order): 
 
-handle:= >=0 (as returned by a prior call to C<spi_open>).
-count:= >0, the number of bytes to read.
+=over 4
+
+=item * arg1: handle= >=0 (as returned by a prior call to C<spi_open>).
+
+=item * arg2: count= >0, the number of bytes to read.
+
+=back
 
 The returned value is a bytearray containing the bytes.
 
 Usage: 
 
-    my $data = $pi->spi_read(12);
+    my $spi_handle = $pi->spi_open(1, 50_000, 3);
+
+    my $data = $pi->spi_read($spi_handle, 12);
+
+    $pi->spi_close($spi_handle);
 
 =cut
 sub spi_read {
@@ -698,14 +716,19 @@ Writes the data bytes to the SPI device associated with handle.
 
 Arguments (in this order):
 
-handle:= >=0 (as returned by a prior call to C<spi_open>).
-data:= the bytes to write.
+=over 4
+
+=item * arg1: handle:= >=0 (as returned by a prior call to C<spi_open>).
+
+=item * arg2: data:= the bytes to write.
+
+=back
 
 Examples : 
 
-    $pi->spi_write(1, [2, 192, 128]);      # write 3 bytes to device 1
+    my $spi_handle = $pi->spi_open(1, 50_000, 3);
 
-    $pi->spi_write(0, 'defgh');            # write 5 bytes to device 0
+    $pi->spi_write($spi_handle, [2, 192, 128]);      # write 3 bytes to device 1
 
 =cut
 sub spi_write {
@@ -725,14 +748,21 @@ returning the data bytes read from the device.
 
 Arguments (in this order):
 
-handle:= >=0 (as returned by a prior call to C<spi_open>).
-data:= the bytes to write.
+=over 4
+
+=item * arg1: handle= >=0 (as returned by a prior call to C<spi_open>).
+
+=item * arg2: data= the bytes to write.
+
+=back
 
 The returned value is a bytearray containing the bytes.
 
 Examples :
 
-    my $rx_data = $pi->spi_xfer(h, [1, 128, 0]);
+    my $spi_handle = $pi->spi_open(1, 50_000, 3);
+
+    my $rx_data = $pi->spi_xfer($spi_handle, [1, 128, 0]);
 
 =cut
 sub spi_xfer {
@@ -759,11 +789,12 @@ at baud bits per second.  The device name must start
 with /dev/tty or /dev/serial.
 
 Arguments :
-=open 4
 
-=item arg1 : tty => the serial device to open.
+=over 4
 
-=item arg2 : baud => baud rate in bits per second, see below.
+=item * arg1 : tty => the serial device to open.
+
+=item * arg2 : baud => baud rate in bits per second, see below.
 
 =back
 
@@ -776,8 +807,13 @@ The baud rate must be one of 50, 75, 110, 134, 150,
 
 Notes: On the raspi on which you want to use the serial device you have to :
 
-1. enable UART -> run C<sudo nano /boot/config.txt> and add the bottom C<enable_uart=1>
-2. run <sudo raspi-config> and disable the login via the Serial port
+=over 4
+
+=item 1 enable UART -> run C<sudo nano /boot/config.txt> and add the bottom C<enable_uart=1>
+
+=item 2 run C<sudo raspi-config> and disable the login via the Serial port
+
+=back
 
 More info (usefull for Raspi 3) here : L<http://spellfoundry.com/2016/05/29/configuring-gpio-serial-port-raspbian-jessie-including-pi-3/>
 
@@ -816,7 +852,11 @@ Closes the serial device associated with handle.
 
 Arguments:
 
-handle => the connection as returned by a prior call to C<serial_open>
+=over 4
+
+=item * arg1: handle => the connection as returned by a prior call to C<serial_open>
+
+=back
 
 Usage:
 
@@ -837,9 +877,9 @@ Arguments:
 
 =over 4
 
-=item arg1: handle => connection handle obtained from calling C<serial_open>
+=item * arg1: handle => connection handle obtained from calling C<serial_open>
 
-=item arg2: data => data to write (string)
+=item * arg2: data => data to write (string)
 
 =back
 
@@ -879,9 +919,9 @@ Arguments:
 
 =over 4
 
-=item arg1: handle => connection handle obtained from calling C<serial_open>
+=item * arg1: handle => connection handle obtained from calling C<serial_open>
 
-=item arg2: count => number of bytes to read
+=item * arg2: count => number of bytes to read
 
 =back
 
@@ -942,11 +982,11 @@ Sends a command to the pigiod daemon and waits for a response
 
 =over 4
 
-=item 1. command - code of the command you want to send (see package constants)
+=item * arg1: command - code of the command you want to send (see package constants)
 
-=item 2. param1 - first parameter (usualy the GPIO)
+=item * arg2: param1 - first parameter (usualy the GPIO)
 
-=item 3. param2 - second parameter - optional - usualy the level to which to set the GPIO (HI/LOW)
+=item * arg3: param2 - second parameter - optional - usualy the level to which to set the GPIO (HI/LOW)
 
 =back
 
@@ -974,17 +1014,17 @@ Same as C<send_command> but allows you to specify the socket you want to use
 The pourpose of this is to allow you to use the send_command functionality on secondary 
 connections used to monitor changes on GPIO
 
-Params:
+Arguments:
 
 =over 4
 
-=item 1. socket - Instance of L<IO::Socket::INET>
+=item * arg1: socket - Instance of L<IO::Socket::INET>
 
-=item 2. command - code of the command you want to send (see package constants)
+=item * arg2: command - code of the command you want to send (see package constants)
 
-=item 3. param1 - first parameter (usualy the GPIO)
+=item * arg3: param1 - first parameter (usualy the GPIO)
 
-=item 4. param2 - second parameter - optional - usualy the level to which to set the GPIO (HI/LOW)
+=item * arg3: param2 - second parameter - optional - usualy the level to which to set the GPIO (HI/LOW)
 
 =back
 

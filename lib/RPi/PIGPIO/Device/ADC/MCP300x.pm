@@ -10,7 +10,7 @@ Communicate with the MCP3004 or MCP3008 analog-to-digital convertors
 
 This convertors offer 10 bit conversions (range 0-1023) for 4 or 8 chanels
 
-Comunication is done via harware SPI so MAKE SURE YOU ENABLED SPI on your RPi (use raspi-config command and go to "Advanced")
+Comunication is done via harware SPI so MAKE SURE YOU ENABLED SPI on your RPi (use C<raspi-config> command and go to "Advanced")
 
 See https://en.wikipedia.org/wiki/Serial_Peripheral_Interface_Bus 
 

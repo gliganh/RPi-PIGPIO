@@ -41,8 +41,14 @@ Usage:
     my $dht22 = RPi::PIGPIO::Device::DHT22->new($pi,$gpio);
 
 Arguments: 
-$pi - an instance of RPi::PIGPIO
-$gpio - GPIO number on which the data pin from the sensor is connected
+
+=over 4
+
+=item * $pi - an instance of RPi::PIGPIO
+
+=item * $gpio - GPIO number to which the LED is connected
+
+=back
 
 =cut
 sub new {

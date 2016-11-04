@@ -43,11 +43,17 @@ Create a new object
 
 Usage:
 
-    my $led = RPi::PIGPIO::Switch->new($pi,$gpio);
+    my $switch = RPi::PIGPIO::Device::Switch->new($pi,$gpio);
 
 Arguments: 
-$pi - an instance of RPi::PIGPIO
-$gpio - GPIO number to which the device is connected
+
+=over 4
+
+=item * $pi - an instance of RPi::PIGPIO
+
+=item * $gpio - GPIO number to which the LED is connected
+
+=back
 
 =cut
 sub new {
