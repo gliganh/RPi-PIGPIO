@@ -13,6 +13,8 @@ Uses the pigpiod to read temperature and humidity from a local or remote DHT22 s
     use RPi::PIGPIO;
     use RPi::PIGPIO::Device::DHT22;
 
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
     my $dht22 = RPi::PIGPIO::Device::DHT22->new($pi,4);
 
     $dht22->trigger(); #trigger a read
@@ -46,7 +48,7 @@ Arguments:
 
 =item * $pi - an instance of RPi::PIGPIO
 
-=item * $gpio - GPIO number to which the LED is connected
+=item * $gpio - GPIO number to which the sensor is connected
 
 =back
 
