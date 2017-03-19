@@ -1,5 +1,7 @@
 package RPi::PIGPIO::Device::DSM501A;
 
+=encoding utf8
+
 =head1 NAME
 
 RPi::PIGPIO::Device::DSM501A - Read dust particle concentraction from a DSM501A sensor
