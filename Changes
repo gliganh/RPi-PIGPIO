@@ -1,8 +1,9 @@
 Revision history for WWW-Session
 
+0.013  2017-04-24
+      Added suport for BCM180 presure/temperature sensor
 0.012  2017-04-24
       Implemented I2C support
-      Added suport for BCM180 presure/temperature sensor
 0.011  2017-04-22
       First version
       

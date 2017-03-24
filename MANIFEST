@@ -1,6 +1,8 @@
+Changes
 lib/RPi/PIGPIO.pm
 lib/RPi/PIGPIO/Assistant.pm
 lib/RPi/PIGPIO/Device/ADC/MCP300x.pm
+lib/RPi/PIGPIO/Device/BMP180.pm
 lib/RPi/PIGPIO/Device/DHT22.pm
 lib/RPi/PIGPIO/Device/DSM501A.pm
 lib/RPi/PIGPIO/Device/LED.pm

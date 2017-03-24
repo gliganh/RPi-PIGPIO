@@ -96,7 +96,7 @@ This is just a list of devices for which we already implemented some functionali
 use strict;
 use warnings;
 
-our $VERSION     = '0.012';
+our $VERSION     = '0.013';
 
 use Exporter 5.57 'import';
 
