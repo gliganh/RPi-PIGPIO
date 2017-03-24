@@ -96,10 +96,11 @@ This is just a list of devices for which we already implemented some functionali
 use strict;
 use warnings;
 
-our $VERSION     = '0.011';
+our $VERSION     = '0.012';
 
 use Exporter 5.57 'import';
 
+use Carp;
 use IO::Socket::INET;
 use Package::Constants;
 
@@ -969,6 +970,553 @@ sub serial_data_available {
     return $self->send_command(PI_CMD_SERDA, $handle);
 }
 
+=head2 I2C interface
+
+=head3 i2c_open
+
+Returns a handle (>=0) for the device at the I2C bus address.
+
+Arguments:
+
+=over 4
+
+=item * i2c_bus: >=0 the i2c bus number
+
+=item * i2c_address: 0-0x7F => the address of the device on the bus
+
+=item * i2c_flags: defaults to 0, no flags are currently defined (optional).  
+
+=back
+
+Physically buses 0 and 1 are available on the Pi.  Higher
+numbered buses will be available if a kernel supported bus
+multiplexor is being used.
+
+Usage :
+    
+    my $handle = $pi->i2c_open(1, 0x53) # open device at address 0x53 on bus 1
+
+=cut
+sub i2c_open {
+    my ($self, $i2c_bus, $i2c_address, $i2c_flags) = @_;
+    
+    $i2c_flags ||= 0;
+    
+    return $self->send_command_ext(PI_CMD_I2CO, $i2c_bus, $i2c_address, [$i2c_flags]);
+}
+
+=head3 i2c_close
+
+Closes the I2C device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=back
+
+=cut
+sub i2c_close {
+    my ($self, $handle) = @_;
+
+    return $self->send_command(PI_CMD_I2CC, $handle, 0);
+}
+
+=head3 i2c_write_quick
+
+Sends a single bit to the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * bit: 0 or 1, the value to write.
+
+=back
+
+Usage: 
+
+    $pi->i2c_write_quick(0, 1) # send 1 to device 0
+    $pi->i2c_write_quick(3, 0) # send 0 to device 3
+
+=cut
+sub i2c_write_quick {
+    my ($self, $handle, $bit) = @_;
+    
+    return $self->send_command(PI_CMD_I2CWQ, $handle, $bit);
+}
+
+=head3 i2c_write_byte
+
+Sends a single byte to the device associated with handle.
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * byte_val: 0-255, the value to write.
+
+=back
+
+Usage: 
+
+   $pi->i2c_write_byte(1, 17)   # send byte   17 to device 1
+   $pi->i2c_write_byte(2, 0x23) # send byte 0x23 to device 2
+
+=cut
+sub i2c_write_byte {
+    my ($self, $handle, $byte_val) = @_;
+    
+    return $self->send_command(PI_CMD_I2CWS, $handle, $byte_val);
+}
+
+=head3 i2c_read_byte
+
+Reads a single byte from the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=back
+
+Usage:
+
+   my $val = $pi->i2c_read_byte(2) # read a byte from device 2
+
+=cut
+sub i2c_read_byte {
+    my ($self, $handle) = @_;
+    
+    return $self->send_command(PI_CMD_I2CRS, $handle, 0);
+}
+
+=head3 i2c_write_byte_data
+
+Writes a single byte to the specified register of the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=item * byte_val: 0-255, the value to write.
+
+=back
+
+Usage:
+
+   # send byte 0xC5 to reg 2 of device 1
+   $pi->i2c_write_byte_data(1, 2, 0xC5);
+
+   # send byte 9 to reg 4 of device 2
+   $pi->i2c_write_byte_data(2, 4, 9);
+
+=cut
+sub i2c_write_byte_data {
+    my ($self, $handle, $reg, $byte_val) = @_;
+    
+    $self->send_command_ext(PI_CMD_I2CWB, $handle, $reg, [$byte_val]);
+}
+
+
+=head3 i2c_write_word_data
+
+Writes a single 16 bit word to the specified register of the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=item * word_val: 0-65535, the value to write.
+
+=back
+
+Usage:
+
+   # send word 0xA0C5 to reg 5 of device 4
+   $pi->i2c_write_word_data(4, 5, 0xA0C5);
+
+   # send word 2 to reg 2 of device 5
+   $pi->i2c_write_word_data(5, 2, 23);
+
+=cut
+sub i2c_write_word_data {
+    my ($self, $handle, $reg, $word_val) = @_;
+    
+    return $self->send_command_ext(PI_CMD_I2CWW, $handle, $reg, [$word_val]);
+}
+
+=head3 i2c_read_byte_data
+
+Reads a single byte from the specified register of the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=back
+
+Usage: 
+   # read byte from reg 17 of device 2
+   my $b = $pi->i2c_read_byte_data(2, 17);
+
+   # read byte from reg  1 of device 0
+   my $b = pi->i2c_read_byte_data(0, 1);
+
+=cut
+sub i2c_read_byte_data {
+    my ($self, $handle, $reg) = @_;
+
+    return $self->send_command(PI_CMD_I2CRB, $handle, $reg);
+}
+
+=head3 i2c_read_word_data
+
+Reads a single 16 bit word from the specified register of the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=back
+
+Usage: 
+   # read byte from reg 17 of device 2
+   my $w = $pi->i2c_read_word_data(2, 17);
+
+   # read byte from reg  1 of device 0
+   my $w = pi->i2c_read_word_data(0, 1);
+
+=cut
+sub i2c_read_word_data {
+    my ($self, $handle, $reg) = @_;
+
+    return $self->send_command(PI_CMD_I2CRW, $handle, $reg);
+}
+
+=head3 i2c_process_call
+
+Writes 16 bits of data to the specified register of the device associated with handle and reads 16 bits of data in return.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=item * word_val: 0-65535, the value to write.
+
+=back
+
+Usage:
+
+   my $r = $pi->i2c_process_call(1, 4, 0x1231);
+   
+   my $r = $pi->i2c_process_call(2, 6, 0);
+
+=cut
+sub i2c_process_call {
+    my ($self, $handle, $reg, $word_val) = @_;
+
+    return $self->send_command_ext(PI_CMD_I2CPC, $handle, $reg, [$word_val]);
+}
+
+
+=head3 i2c_write_block_data
+
+Writes up to 32 bytes to the specified register of the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=item * data: arrayref of bytes to write
+
+=back
+
+Usage:
+
+   $pi->i2c_write_block_data(6, 2, [0, 1, 0x22]);
+
+=cut
+sub i2c_write_block_data {
+    my ($self, $handle, $reg, $data) = @_;
+    
+    return 0 unless $data;
+    
+    croak "data needs to be an arrayref" unless (ref $data eq "ARRAY");
+    
+    return $self->send_command_ext(PI_CMD_I2CWK, $handle, $reg, $data);
+}
+
+=head3 i2c_read_block_data
+
+Reads a block of up to 32 bytes from the specified register of the device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=back
+
+The amount of returned data is set by the device.
+
+The returned value is a tuple of the number of bytes read and a bytearray containing the bytes.  
+If there was an error the number of bytes read will be less than zero (and will contain the error code).
+
+Usage:
+
+    my ($bytes,$data) = $pi->i2c_read_block_data($handle, 10);
+
+=cut
+sub i2c_read_block_data {
+    my ($self, $handle, $reg) = @_;
+    
+    my ($bytes, $data) = $self->send_i2c_command(PI_CMD_I2CRK, $handle, $reg);
+    
+    return ($bytes, $data);
+}
+
+=head3 i2c_block_process_call
+
+Writes data bytes to the specified register of the device associated with handle and 
+reads a device specified number of bytes of data in return.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=item * data: arrayref of bytes to write
+
+=back
+
+Usage:
+
+   my ($bytes,$data) = $pi->i2c_block_process_call($handle, 10, [2, 5, 16]);
+   
+The returned value is a tuple of the number of bytes read and a bytearray containing the bytes.
+
+If there was an error the number of bytes read will be less than zero (and will contain the error code).
+
+=cut
+sub i2c_block_process_call {
+    my ($self, $handle, $reg, $data) = @_;
+    
+    my ($bytes, $recv_data) = $self->send_i2c_command(PI_CMD_I2CPK, $handle, $reg, [$data]);
+    
+    return ($bytes, $recv_data);
+}
+
+=head3 i2c_write_i2c_block_data
+
+Writes data bytes to the specified register of the device associated with handle.
+1-32 bytes may be written.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=item * data: arrayref of bytes to write
+
+=back
+
+Usage:
+
+   $pi->i2c_write_i2c_block_data(6, 2, [0, 1, 0x22]);
+
+=cut
+sub i2c_write_i2c_block_data {
+    my ($self, $handle, $reg, $data) = @_;
+    
+    return $self->send_command_ext(PI_CMD_I2CWI, $handle, $reg, $data);
+}
+
+=head3 i2c_read_i2c_block_data
+
+Reads count bytes from the specified register of the device associated with handle.
+The count may be 1-32.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * reg: >=0, the device register.
+
+=item * count: >0, the number of bytes to read (1-32).
+
+=back
+
+Usage:
+
+    my ($bytes, $data) = $pi->i2c_read_i2c_block_data($handle, 4, 32);
+
+The returned value is a tuple of the number of bytes read and a bytearray containing the bytes.
+If there was an error the number of bytes read will be less than zero (and will contain the error code).
+
+=cut
+sub i2c_read_i2c_block_data {
+    my ($self, $handle, $reg, $count) = @_;
+    
+    my ($bytes, $data) = $self->send_i2c_command(PI_CMD_I2CRI, $handle, $reg, [$count]);
+    
+    return ($bytes, $data);
+}
+
+=head3 i2c_read_device
+
+Returns count bytes read from the raw device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * count: >0, the number of bytes to read (1-32).
+
+=back
+
+Usage:
+
+   my ($count, $data) = $pi->i2c_read_device($handle, 12);
+
+=cut
+sub i2c_read_device {
+    my ($self, $handle, $count) = @_;
+    
+    my ($bytes, $data) = $self->send_i2c_command(PI_CMD_I2CRD, $handle, $count);
+
+    return ($bytes, $data);
+}
+
+=head3 i2c_write_device
+
+Writes the data bytes to the raw device associated with handle.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * data: arrayref of bytes to write
+
+=back
+
+Usage:
+
+   $pi->i2c_write_device($handle, [23, 56, 231]);
+
+=cut
+sub i2c_write_device {
+    my ($self, $handle, $data) = @_;
+    
+    return $self->send_command_ext(PI_CMD_I2CWD, $handle, 0, $data);
+}
+
+
+=head3 i2c_zip
+
+This function executes a sequence of I2C operations.
+The operations to be performed are specified by the contents of data which contains the concatenated command codes and associated data.
+
+Arguments:
+
+=over 4
+
+=item * handle: >=0 ( as returned by a prior call to C<i2c_open()> )
+
+=item * data: arrayref of the concatenated I2C commands, see below
+
+=back
+
+The returned value is a tuple of the number of bytes read and a bytearray containing the bytes.
+If there was an error the number of bytes read will be less than zero (and will contain the error code).
+
+Usage:
+
+   my ($count, $data) = $pi->i2c_zip($handle, [4, 0x53, 7, 1, 0x32, 6, 6, 0])
+
+The following command codes are supported:
+
+   Name    @ Cmd & Data @ Meaning
+   End     @ 0          @ No more commands
+   Escape  @ 1          @ Next P is two bytes
+   On      @ 2          @ Switch combined flag on
+   Off     @ 3          @ Switch combined flag off
+   Address @ 4 P        @ Set I2C address to P
+   Flags   @ 5 lsb msb  @ Set I2C flags to lsb + (msb << 8)
+   Read    @ 6 P        @ Read P bytes of data
+   Write   @ 7 P ...    @ Write P bytes of data
+
+The address, read, and write commands take a parameter P. Normally P is one byte (0-255).  
+If the command is preceded by the Escape command then P is two bytes (0-65535, least significant byte first).
+
+The address defaults to that associated with the handle.
+The flags default to 0.  The address and flags maintain their previous value until updated.
+
+Any read I2C data is concatenated in the returned bytearray.
+
+   Set address 0x53, write 0x32, read 6 bytes
+   Set address 0x1E, write 0x03, read 6 bytes
+   Set address 0x68, write 0x1B, read 8 bytes
+   End
+
+   0x04 0x53   0x07 0x01 0x32   0x06 0x06
+   0x04 0x1E   0x07 0x01 0x03   0x06 0x06
+   0x04 0x68   0x07 0x01 0x1B   0x06 0x08
+   0x00
+
+=cut
+sub i2c_zip {
+    my ($self, $handle, $commands) = @_;
+    
+    my ($bytes, $data) = $self->send_i2c_command(PI_CMD_I2CZ, $handle, 0, $commands);
+    
+    return ($bytes, $data);
+}
 
 ################################################################################################################################
 
@@ -1079,6 +1627,28 @@ sub send_command_ext {
     my ($x, $val) = unpack('a[12] I', $response);
 
     return $val;
+}
+
+=head2 send_i2c_command 
+
+Method used for sending and reading back i2c data
+
+=cut
+sub send_i2c_command {
+    my ($self, $command, $handle, $reg, $data) = @_;
+    
+    $data //= [];
+    
+    my $bytes = $self->send_command_ext($command, $handle, $reg, $data);
+
+    if ($bytes > 0) {
+        my $response;
+        $self->{sock}->recv($response,$bytes);
+        return $bytes, [unpack("C"x$bytes, $response)];
+    }
+    else {
+        return $bytes, "";
+    }
 }
 
 sub prepare_for_exit {
