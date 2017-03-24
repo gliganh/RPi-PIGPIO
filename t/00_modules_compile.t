@@ -3,6 +3,10 @@ use Test::More;
 use strict;
 use warnings;
 
+BEGIN {
+    plan skip_all => "These tests are for authors only!" unless $ENV{AUTHOR_TESTING} or $ENV{RELEASE_TESTING};
+}
+
 #test to check if all the modules compile
 
 use Module::Find;
