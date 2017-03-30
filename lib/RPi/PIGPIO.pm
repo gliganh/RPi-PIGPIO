@@ -71,23 +71,132 @@ Read the temperature and humidity from a DHT22 sensor connected to GPIO4
     print "Temperature : ".$dht22->temperature."\n";
     print "Humidity : ".$dht22->humidity."\n";
 
-=head1 SUPPORTED DEVICES
+=head1 ALREADY IMPLEMENTED DEVICES
 
 Note: you can write your own code using methods implemeted here to controll your own device
 
 This is just a list of devices for which we already implemented some functionalities to make your life easier
 
-=over 4
+=head2 Generic LED 
 
-=item * DHT22 sensor - use L<RPi::PIGPIO::Device::DHT22>
+See complete documentations here: L<RPi::PIGPIO::Device::LED>
 
-=item * LED - use L<RPi::PIGPIO::Device::LED>
+Usage:
 
-=item * generic switch / relay - use L<RPi::PIGPIO::Device::Switch>
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::LED;
 
-=item * MH-Z14 CO2 module - use L<RPi::PIGPIO::Device::MH_Z14>
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
 
-=item * MCP3008/MCP3004 analog-to-digital convertor - use L<RPi::PIGPIO::Device::ADC::MCP300x>
+    my $led = RPi::PIGPIO::Device::LED->new($pi,17);
+
+    $led->on;
+
+    sleep 3;
+
+    $led->off;
+
+
+=head2 Seneric switch / relay
+
+See complete documentations here: L<RPi::PIGPIO::Device::Switch>
+
+Usage:
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::Switch;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $switch = RPi::PIGPIO::Device::Switch->new($pi,4);
+
+    $switch->on;
+
+    sleep 3;
+
+    $switch->off;
+
+=head2 DHT22 temperature/humidity sensor
+
+See complete documentations here : L<RPi::PIGPIO::Device::DHT22>
+
+Usage:
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::DHT22;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $dht22 = RPi::PIGPIO::Device::DHT22->new($pi,4);
+
+    $dht22->trigger(); #trigger a read
+
+    print "Temperature : ".$dht22->temperature."\n";
+    print "Humidity : ".$dht22->humidity."\n";
+
+
+=head2 BMP180 atmospheric presure/temperature sensor
+
+See complete documentations here : L<RPi::PIGPIO::Device::BMP180>
+
+Usage:
+
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::BMP180;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $bmp180 = RPi::PIGPIO::Device::BMP180->new($pi,1);
+
+    $bmp180->read_sensor(); #trigger a read
+
+    print "Temperature : ".$bmp180->temperature." C\n";
+    print "Presure : ".$bmp180->presure." mbar\n";
+
+=head2 DSM501A dust particle concentraction sensor
+
+See complete documentations here : L<RPi::PIGPIO::Device::DSM501A>
+
+Usage:
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::DSM501A;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $dust_sensor = RPi::PIGPIO::Device::DSM501A->new($pi,4);
+
+    my $pcs = $dust_sensor->sample(30); # Sample the air for 30 seconds and report
+
+=head2 MH-Z14 CO2 module
+
+See complete documentations here: L<RPi::PIGPIO::Device::MH_Z14>
+
+Usage:
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::MH_Z14;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $co2_sensor = RPi::PIGPIO::Device::MH_Z14->new($pi,mode => 'serial', tty => '/dev/ttyAMA0');
+
+    $ppm = $co2_sensor->read();
+
+
+=head2 MCP3008/MCP3004 analog-to-digital convertor
+
+See complete documentations here: L<RPi::PIGPIO::Device::ADC::MCP300x>
+
+Usage:
+    use feature 'say';
+    use RPi::PIGPIO;
+    use RPi::PIGPIO::Device::ADC::MCP300x;
+
+    my $pi = RPi::PIGPIO->connect('192.168.1.10');
+
+    my $mcp = RPi::PIGPIO::Device::ADC::MCP300x->new(0);
+
+    say "Sensor 1: " .$mcp->read(0);
+    say "Sensor 2: " .$mcp->read(1);
 
 =back
 
@@ -562,8 +671,9 @@ sub gpio_trigger {
     $self->send_command_ext(PI_CMD_TRIG, $gpio, $length, [ $level ]);
 }
 
+=head2 SPI interface
 
-=head2 spi_open
+=head3 spi_open
 
 Comunication is done via harware SPI so MAKE SURE YOU ENABLED SPI on your RPi (use raspi-config command and go to "Advanced")
 
@@ -657,7 +767,7 @@ sub spi_open {
 }
 
 
-=head2 spi_close
+=head3 spi_close
 
 Closes an SPI channel
 
@@ -675,7 +785,7 @@ sub spi_close {
 }
    
 
-=head2 spi_read
+=head3 spi_read
 
 Arguments (in this order): 
 
@@ -711,7 +821,7 @@ sub spi_read {
 }
 
 
-=head2 spi_write
+=head3 spi_write
 
 Writes the data bytes to the SPI device associated with handle.
 
@@ -742,7 +852,7 @@ sub spi_write {
     return $self->send_command_ext(PI_CMD_SPIW, $handle, 0, $data);
 }
 
-=head2 spi_xfer
+=head3 spi_xfer
 
 Writes the data bytes to the SPI device associated with handle,
 returning the data bytes read from the device.
@@ -782,8 +892,9 @@ sub spi_xfer {
     return $response;
 }
 
+=head2 Serial interface
 
-=head2 serial_open
+=head3 serial_open
 
 Returns a handle for the serial tty device opened
 at baud bits per second.  The device name must start
@@ -847,7 +958,7 @@ sub serial_open {
 }
 
 
-=head2 serial_close
+=head3 serial_close
 
 Closes the serial device associated with handle.
 
@@ -870,7 +981,7 @@ sub serial_close {
     return $self->send_command(PI_CMD_SERC,$handle);
 }
 
-=head2 serial_write
+=head3 serial_write
 
 Write a string to the serial handle opened with C<serial_open>
 
@@ -912,7 +1023,7 @@ sub serial_write {
     my ($x, $val) = unpack('a[12] I', $response);
 }
 
-=head2 serial_read
+=head3 serial_read
 
 Read a string from the serial handle opened with C<serial_open>
 
@@ -949,7 +1060,7 @@ sub serial_read {
     return $response;
 }
 
-=head2 serial_data_available
+=head3 serial_data_available
 
 Checks if we have any data waiting to be read from the serial handle
 
