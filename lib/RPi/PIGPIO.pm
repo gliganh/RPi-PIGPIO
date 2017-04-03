@@ -165,7 +165,8 @@ Usage:
 
     my $dust_sensor = RPi::PIGPIO::Device::DSM501A->new($pi,4);
 
-    my $pcs = $dust_sensor->sample(30); # Sample the air for 30 seconds and report
+    # Sample the air for 30 seconds and report
+    my ($ratio, $mg_per_m3, $pcs_per_m3, $pcs_per_ft3) = $dust_sensor->sample();
 
 =head2 MH-Z14 CO2 module
 
@@ -205,7 +206,7 @@ Usage:
 use strict;
 use warnings;
 
-our $VERSION     = '0.013';
+our $VERSION     = '0.014';
 
 use Exporter 5.57 'import';
 
