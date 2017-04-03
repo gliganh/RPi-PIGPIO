@@ -10,11 +10,9 @@ RPi::PIGPIO::Device::DSM501A - Read dust particle concentraction from a DSM501A 
 
 Uses the pigpiod to read dust particle concentraction from a DSM501A sensor
 
-The minimum recomended sampling time is 30 seconds.
+Sampling time is 30 seconds.
 
-Dust particles concentration is extrapolated for a cubic meter of air.
-
-Sensor specs can be found here : https://www.elektronik.ropla.eu/pdf/stock/smy/dsm501.pdf
+Sensor specs can be found here : http://www.samyoungsnc.com/products/3-1%20Specification%20DSM501.pdf
 
 Acceptable room air concentration for particles ≥1 µm is 8,320,000 / cubic meter.
 More info on dust levels for different environments here : https://en.wikipedia.org/wiki/Cleanroom#ISO_14644-1_and_ISO_14698
@@ -28,11 +26,11 @@ More info on dust levels for different environments here : https://en.wikipedia.
 
     my $dust_sensor = RPi::PIGPIO::Device::DSM501A->new($pi,4);
 
-    my $pcs = $dust_sensor->sample(30); # Sample the air for 30 seconds and report
+    my ($ratio, $mg_per_m3, $pcs_per_m3, $pcs_per_ft3) = $dust_sensor->sample(); # Sample the air for 30 seconds and report
 
 =head1 NOTES
 
-Please be aware that c<sample()> method will block until the sample time expires.
+Please be aware that c<sample()> method will block until the sample time expires (30 sec).
 
 =cut
 
@@ -98,11 +96,25 @@ Arguments:
 
 =back
 
+Returns an array containign:
+
+=over 4
+
+=item 1 $ratio - ratio of the time the signal was low
+
+=item 2 $mg_per_m3 - mg of particles / cubic meter
+
+=item 3 $pcs_per_m3 - pcs of particles / cubic meter
+
+=item 4 $pcs_per_ft3 - pcs of particles / cubic ft
+
+=back
+
 =cut
 sub sample {
-    my ($self, $sample_time) = @_;
+    my ($self) = @_;
     
-    $sample_time ||= 30;
+    my $sample_time ||= 30;
     
     my $sock = IO::Socket::INET->new(
                        PeerAddr => $self->{pi}{host},
@@ -184,13 +196,23 @@ sub sample {
 
     # percentage of total time spent in LOW level
     my $ratio = (($sum / 1_000_000) *100) / $elapsed;
-
-    # convert ratio to actual value 100% in LOW state over 30 sec means 15000 pcs / 283.1685 ml of air
-    my $max_pcs = 15_000 * ( $sample_time / 30 );
     
-    my $actual_pcs_per_cubic_meter = ( $max_pcs * $ratio / 100 ) * (1/0.02831685);
+    # NOTE: formulas bellow were extrapolated from the charts in the documentation
+    # Determining mathematical formulas using Lagrange does't work well for ratio
+    # bigger than what we have on the charts
     
-    return $actual_pcs_per_cubic_meter;
+    # Calculate mg of dust / m3 or air
+    # Used samples : (0,0) (2,0.2) (6,0.6) (8,0.8) (9.2, 1.0) (10.7, 1.2) (12, 1.4)
+    my $mg_per_m3 = $ratio < 8 ? $ratio / 10 : $ratio / 8.4;
+    
+    # Calculate pcs of dust / ft3 of air
+    # Used samples : (4,2500) (8,5000) (16,10000) (20,12500) (24.5, 15000)
+    my $pcs_per_ft3 = $ratio < 20 ? $ratio * 625 : $ratio * 612;
+    
+    #1 ft3 = 28316.85ml = 0.02831685m3
+    my $pcs_per_m3 = $pcs_per_ft3 * (1/0.02831685);
+    
+    return ($ratio, $mg_per_m3, $pcs_per_m3, $pcs_per_ft3);
 }
 
 1;
